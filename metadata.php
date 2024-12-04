@@ -86,17 +86,19 @@ add_filter( 'pre_get_document_title', function( $title ) {
 	return $title;
 });
 
-// modify the meta description output
+// inject meta description directly after the title
 add_action( 'wp_head', function() {
 	if ( is_singular() ) {
 		global $post;
 
 		$custom_description = get_post_meta( $post->ID, '_metadata_custom_description', true );
 
+		// Output description right after the <title> tag
 		if ( $custom_description ) {
-			echo '<meta name="description" content="' . esc_attr( $custom_description ) . '">';
+			echo '<!-- Metadata Plugin -->' . "\n";
+			echo '<meta name="description" content="' . esc_attr( $custom_description ) . '">' . "\n";
 		}
 	}
-});
+}, 1 ); // priority 1 ensures it's output right after the <title>
 
 // Ref: ChatGPT
