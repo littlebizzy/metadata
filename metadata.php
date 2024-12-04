@@ -36,11 +36,40 @@ add_action( 'add_meta_boxes', function() {
 
 			echo '<label for="metadata_custom_title">Custom Title</label>';
 			echo '<input type="text" id="metadata_custom_title" name="metadata_custom_title" value="' . esc_attr( $custom_title ) . '" class="widefat" />';
-			echo '<p class="description">Overrides the default title tag.</p>';
+			echo '<p id="metadata_title_counter" class="description">Optimal range: 50-60 characters.</p>';
 
 			echo '<label for="metadata_custom_description">Meta Description</label>';
 			echo '<textarea id="metadata_custom_description" name="metadata_custom_description" class="widefat" rows="4">' . esc_textarea( $custom_description ) . '</textarea>';
 			echo '<p class="description">Overrides the default meta description.</p>';
+
+			// Add inline JavaScript for the counter
+			echo '<script>
+				document.addEventListener("DOMContentLoaded", function() {
+					const titleInput = document.getElementById("metadata_custom_title");
+					const counter = document.getElementById("metadata_title_counter");
+					
+					function updateCounter() {
+						const length = titleInput.value.length;
+						let message = `${length} characters`;
+						let color = "";
+						
+						if (length <= 50) {
+							color = "green"; // Ideal length
+						} else if (length > 50 && length <= 60) {
+							color = "yellow"; // Approaching limit
+						} else {
+							color = "red"; // Exceeds limit
+						}
+						
+						counter.style.color = color;
+						counter.textContent = `${message} (Optimal: 50-60)`;
+					}
+
+					// Update on load and on input
+					updateCounter();
+					titleInput.addEventListener("input", updateCounter);
+				});
+			</script>';
 		},
 		[ 'post', 'page' ],
 		'normal',
@@ -93,9 +122,8 @@ add_action( 'wp_head', function() {
 
 		$custom_description = get_post_meta( $post->ID, '_metadata_custom_description', true );
 
-		// Output description right after the <title> tag
+		// Output description directly after the <title> tag
 		if ( $custom_description ) {
-			echo '<!-- Metadata Plugin -->' . "\n";
 			echo '<meta name="description" content="' . esc_attr( $custom_description ) . '">' . "\n";
 		}
 	}
