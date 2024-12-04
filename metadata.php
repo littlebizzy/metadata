@@ -2,7 +2,7 @@
 /*
 Plugin Name: Metadata
 Plugin URI: https://www.littlebizzy.com/plugins/metadata
-Description: Allows editing the title tag and meta description for posts and pages.
+Description: For custom titles and descriptions
 Version: 1.0.0
 Author: LittleBizzy
 Author URI: https://www.littlebizzy.com
@@ -34,40 +34,49 @@ add_action( 'add_meta_boxes', function() {
 
 			wp_nonce_field( 'metadata_save_meta_box', 'metadata_nonce' );
 
+			// Custom Title Field
 			echo '<label for="metadata_custom_title">Custom Title</label>';
 			echo '<input type="text" id="metadata_custom_title" name="metadata_custom_title" value="' . esc_attr( $custom_title ) . '" class="widefat" />';
 			echo '<p id="metadata_title_counter" class="description">Optimal range: 50-60 characters.</p>';
 
+			// Meta Description Field
 			echo '<label for="metadata_custom_description">Meta Description</label>';
 			echo '<textarea id="metadata_custom_description" name="metadata_custom_description" class="widefat" rows="4">' . esc_textarea( $custom_description ) . '</textarea>';
-			echo '<p class="description">Overrides the default meta description.</p>';
+			echo '<p id="metadata_description_counter" class="description">Optimal range: 150-160 characters.</p>';
 
-			// Add inline JavaScript for the counter
+			// Inline JavaScript for both counters
 			echo '<script>
 				document.addEventListener("DOMContentLoaded", function() {
 					const titleInput = document.getElementById("metadata_custom_title");
-					const counter = document.getElementById("metadata_title_counter");
+					const descriptionInput = document.getElementById("metadata_custom_description");
+					const titleCounter = document.getElementById("metadata_title_counter");
+					const descriptionCounter = document.getElementById("metadata_description_counter");
 					
-					function updateCounter() {
-						const length = titleInput.value.length;
+					// Function to update counters
+					function updateCounter(input, counter, optimalMin, optimalMax) {
+						const length = input.value.length;
 						let message = `${length} characters`;
 						let color = "";
 						
-						if (length <= 50) {
-							color = "green"; // Ideal length
-						} else if (length > 50 && length <= 60) {
+						if (length <= optimalMin) {
+							color = "green"; // Optimal
+						} else if (length > optimalMin && length <= optimalMax) {
 							color = "yellow"; // Approaching limit
 						} else {
 							color = "red"; // Exceeds limit
 						}
 						
 						counter.style.color = color;
-						counter.textContent = `${message} (Optimal: 50-60)`;
+						counter.textContent = `${message} (Optimal: ${optimalMin}-${optimalMax})`;
 					}
 
-					// Update on load and on input
-					updateCounter();
-					titleInput.addEventListener("input", updateCounter);
+					// Initial counter update
+					updateCounter(titleInput, titleCounter, 50, 60);
+					updateCounter(descriptionInput, descriptionCounter, 150, 160);
+
+					// Event listeners for updates
+					titleInput.addEventListener("input", () => updateCounter(titleInput, titleCounter, 50, 60));
+					descriptionInput.addEventListener("input", () => updateCounter(descriptionInput, descriptionCounter, 150, 160));
 				});
 			</script>';
 		},
