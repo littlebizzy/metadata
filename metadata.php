@@ -71,17 +71,27 @@ add_action( 'save_post', function( $post_id ) {
 	}
 });
 
-// modify the title and meta description output
+// modify the title output
+add_filter( 'pre_get_document_title', function( $title ) {
+	if ( is_singular() ) {
+		global $post;
+
+		$custom_title = get_post_meta( $post->ID, '_metadata_custom_title', true );
+
+		if ( $custom_title ) {
+			return $custom_title;
+		}
+	}
+
+	return $title;
+});
+
+// modify the meta description output
 add_action( 'wp_head', function() {
 	if ( is_singular() ) {
 		global $post;
 
-		$custom_title       = get_post_meta( $post->ID, '_metadata_custom_title', true );
 		$custom_description = get_post_meta( $post->ID, '_metadata_custom_description', true );
-
-		if ( $custom_title ) {
-			add_filter( 'pre_get_document_title', fn() => $custom_title );
-		}
 
 		if ( $custom_description ) {
 			echo '<meta name="description" content="' . esc_attr( $custom_description ) . '">';
