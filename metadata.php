@@ -122,30 +122,37 @@ add_action( 'add_meta_boxes', function() {
 
 // save the metadata fields
 add_action( 'save_post', function( $post_id ) {
+	// Verify nonce
 	if ( ! isset( $_POST['metadata_nonce'] ) || ! wp_verify_nonce( $_POST['metadata_nonce'], 'metadata_save_meta_box' ) ) {
 		return;
 	}
 
+	// Skip autosaves
 	if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
 		return;
 	}
 
+	// Check user permissions
 	if ( ! current_user_can( 'edit_post', $post_id ) ) {
 		return;
 	}
 
+	// Save meta title
 	if ( isset( $_POST['metadata_custom_title'] ) ) {
-		$custom_title = sanitize_text_field( $_POST['metadata_custom_title'] );
-		update_post_meta( $post_id, '_metadata_title', $custom_title );
+		$metadata_title = sanitize_text_field( $_POST['metadata_custom_title'] );
+		update_post_meta( $post_id, '_metadata_title', $metadata_title );
 	}
 
+	// Save meta description
 	if ( isset( $_POST['metadata_custom_description'] ) ) {
-		update_post_meta( $post_id, '_metadata_description', sanitize_textarea_field( $_POST['metadata_custom_description'] ) );
+		$metadata_description = sanitize_textarea_field( $_POST['metadata_custom_description'] );
+		update_post_meta( $post_id, '_metadata_description', $metadata_description );
 	}
 });
 
 // modify the title output and append the site name
 add_filter( 'pre_get_document_title', function( $title ) {
+	// Only modify on singular pages
 	if ( ! is_singular() ) {
 		return $title;
 	}
@@ -157,6 +164,7 @@ add_filter( 'pre_get_document_title', function( $title ) {
 		return $title;
 	}
 
+	// Fetch meta title and append site name
 	$metadata_title = get_post_meta( $post->ID, '_metadata_title', true );
 	$site_name      = get_bloginfo( 'name' );
 
@@ -169,6 +177,7 @@ add_filter( 'pre_get_document_title', function( $title ) {
 
 // inject meta description directly after the title
 add_action( 'wp_head', function() {
+	// Only inject on singular pages
 	if ( ! is_singular() ) {
 		return;
 	}
@@ -180,9 +189,9 @@ add_action( 'wp_head', function() {
 		return;
 	}
 
+	// Fetch and output meta description
 	$metadata_description = get_post_meta( $post->ID, '_metadata_description', true );
 
-	// Output description directly after the <title> tag
 	if ( ! empty( $metadata_description ) ) {
 		echo '<meta name="description" content="' . esc_attr( $metadata_description ) . '">' . "\n";
 	}
