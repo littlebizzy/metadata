@@ -33,6 +33,12 @@ add_action( 'add_meta_boxes', function() {
             $metadata_title       = get_post_meta( $post->ID, '_metadata_title', true );
             $metadata_description = get_post_meta( $post->ID, '_metadata_description', true );
             $site_name            = get_bloginfo( 'name' );
+            $post_title           = get_the_title( $post );
+            $post_content         = wp_strip_all_tags( wp_trim_words( $post->post_content, 160 ) ); // first 160 chars of content
+
+            // determine defaults
+            $default_metadata_title       = $metadata_title ?: $post_title;
+            $default_metadata_description = $metadata_description ?: $post_content;
 
             // nonce for security
             wp_nonce_field( 'metadata_save_meta_box', 'metadata_nonce' );
@@ -44,7 +50,7 @@ add_action( 'add_meta_boxes', function() {
             echo '<div class="metadata-title-field" style="margin-bottom: 12px;">';
             echo '<label for="metadata_custom_title">' . esc_html__( 'Meta Title', 'metadata' ) . '</label>';
             echo '<div style="position: relative; max-width: 100%; margin-bottom: 4px;">'; // ensure vertical stacking
-            echo '<input type="text" id="metadata_custom_title" name="metadata_custom_title" value="' . esc_attr( $metadata_title ) . '" class="widefat" style="padding-right: 180px;" />';
+            echo '<input type="text" id="metadata_custom_title" name="metadata_custom_title" value="' . esc_attr( $metadata_title ) . '" class="widefat" style="padding-right: 180px;" placeholder="' . esc_attr( $post_title ) . '" />';
             echo '<span id="site_name_overlay" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #999; pointer-events: none; user-select: none;"> - ' . esc_html( $site_name ) . '</span>';
             echo '</div>';
             echo '<p id="metadata_title_counter" class="description" style="margin-top: 0;">' . esc_html__( 'Optimal range: 45-60 characters (including " - ', 'metadata' ) . esc_html( $site_name ) . '").</p>';
@@ -54,7 +60,7 @@ add_action( 'add_meta_boxes', function() {
             echo '<div class="metadata-description-field" style="margin-bottom: 0px;">';
             echo '<label for="metadata_custom_description">' . esc_html__( 'Meta Description', 'metadata' ) . '</label>';
             echo '<div style="position: relative; max-width: 100%; margin-bottom: 4px;">'; // align with title field structure
-            echo '<textarea id="metadata_custom_description" name="metadata_custom_description" class="widefat" rows="4" style="resize: vertical; padding-right: 0;">' . esc_textarea( $metadata_description ) . '</textarea>';
+            echo '<textarea id="metadata_custom_description" name="metadata_custom_description" class="widefat" rows="4" style="resize: vertical; padding-right: 0;" placeholder="' . esc_attr( $post_content ) . '">' . esc_textarea( $metadata_description ) . '</textarea>';
             echo '</div>';
             echo '<p id="metadata_description_counter" class="description" style="margin-top: 0;">' . esc_html__( 'Optimal range: 145-160 characters.', 'metadata' ) . '</p>';
             echo '</div>';
@@ -159,49 +165,48 @@ add_action( 'save_post', function( $post_id ) {
 
 // modify the title output and append the site name
 add_filter( 'pre_get_document_title', function( $title ) {
-	// Only modify on singular pages
+	// only modify on singular pages
 	if ( ! is_singular() ) {
 		return $title;
 	}
 
 	$post = get_queried_object();
 
-	// Ensure we are working with a valid post object
+	// ensure we are working with a valid post object
 	if ( ! ( $post instanceof WP_Post ) ) {
 		return $title;
 	}
 
-	// Fetch meta title and append site name
+	// fetch meta title or use post title as default
 	$metadata_title = get_post_meta( $post->ID, '_metadata_title', true );
-	$site_name      = get_bloginfo( 'name' );
+	$default_title  = $metadata_title ?: get_the_title( $post );
 
-	if ( $metadata_title ) {
-		return $metadata_title . ' - ' . $site_name;
-	} else {
-		return $title . ' - ' . $site_name;
-	}
+	// append site name
+	$site_name = get_bloginfo( 'name' );
+
+	return $default_title . ' - ' . $site_name;
 });
 
 // inject meta description directly after the title
 add_action( 'wp_head', function() {
-	// Only inject on singular pages
+	// only inject on singular pages
 	if ( ! is_singular() ) {
 		return;
 	}
 
 	$post = get_queried_object();
 
-	// Ensure we are working with a valid post object
+	// ensure we are working with a valid post object
 	if ( ! ( $post instanceof WP_Post ) ) {
 		return;
 	}
 
-	// Fetch and output meta description
+	// fetch meta description or use first 160 characters of post content
 	$metadata_description = get_post_meta( $post->ID, '_metadata_description', true );
+	$default_description  = $metadata_description ?: wp_strip_all_tags( wp_trim_words( $post->post_content, 160, '' ) );
 
-	if ( ! empty( $metadata_description ) ) {
-		echo '<meta name="description" content="' . esc_attr( $metadata_description ) . '">' . "\n";
-	}
+	// output meta description
+	echo '<meta name="description" content="' . esc_attr( $default_description ) . '">' . "\n";
 }, 1 ); // priority 1 ensures it's output right after the <title>
 
 // Ref: ChatGPT
