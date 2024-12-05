@@ -29,23 +29,25 @@ add_action( 'add_meta_boxes', function() {
 		'metadata-meta-box',
 		'Metadata',
 		function( $post ) {
-			$custom_title       = get_post_meta( $post->ID, '_metadata_title', true );
-			$custom_description = get_post_meta( $post->ID, '_metadata_description', true );
-			$site_name          = get_bloginfo( 'name' );
+			// Fetch existing meta values
+			$metadata_title       = get_post_meta( $post->ID, '_metadata_title', true );
+			$metadata_description = get_post_meta( $post->ID, '_metadata_description', true );
+			$site_name            = get_bloginfo( 'name' );
 
+			// Nonce for security
 			wp_nonce_field( 'metadata_save_meta_box', 'metadata_nonce' );
 
-			// Meta Title Input Field with Site Name Overlay
+			// Meta Title Field
 			echo '<label for="metadata_custom_title">Meta Title</label>';
 			echo '<div style="position: relative; display: flex; align-items: center; max-width: 100%;">';
-			echo '<input type="text" id="metadata_custom_title" name="metadata_custom_title" value="' . esc_attr( $custom_title ) . '" class="widefat" style="padding-right: 180px;" />';
+			echo '<input type="text" id="metadata_custom_title" name="metadata_custom_title" value="' . esc_attr( $metadata_title ) . '" class="widefat" style="padding-right: 180px;" />';
 			echo '<span id="site_name_overlay" style="position: absolute; right: 10px; color: #999; pointer-events: none; user-select: none;"> - ' . esc_html( $site_name ) . '</span>';
 			echo '</div>';
 			echo '<p id="metadata_title_counter" class="description">Optimal range: 45-60 characters (including " - ' . esc_html( $site_name ) . '").</p>';
 
 			// Meta Description Field
 			echo '<label for="metadata_custom_description">Meta Description</label>';
-			echo '<textarea id="metadata_custom_description" name="metadata_custom_description" class="widefat" rows="4">' . esc_textarea( $custom_description ) . '</textarea>';
+			echo '<textarea id="metadata_custom_description" name="metadata_custom_description" class="widefat" rows="4">' . esc_textarea( $metadata_description ) . '</textarea>';
 			echo '<p id="metadata_description_counter" class="description">Optimal range: 145-160 characters.</p>';
 
 			// Inline JavaScript for counter updates
@@ -58,50 +60,44 @@ add_action( 'add_meta_boxes', function() {
 					const siteName = " - ' . esc_js( $site_name ) . '";
 					const siteNameLength = siteName.length;
 
-					// Function to update character counter and colors
-					function updateCounter(baseValue, counter, optimalMin, optimalMax, appendLength = 0, descriptionLogic = false) {
+					// Update counter colors and text
+					function updateCounter(baseValue, counter, optimalMin, optimalMax, appendLength = 0, isDescription = false) {
 						const totalLength = baseValue.length + appendLength;
-						let message = `${totalLength} characters`;
 						let color = "";
 
-						if (descriptionLogic) {
-							// Meta description logic
+						if (isDescription) {
 							if (totalLength < 80) {
-								color = "red"; // Too short
+								color = "red";
 							} else if (totalLength >= 80 && totalLength < 145) {
-								color = "orange"; // Below optimal
+								color = "orange";
 							} else if (totalLength >= 145 && totalLength <= 160) {
-								color = "green"; // Optimal range
+								color = "green";
 							} else if (totalLength > 160) {
-								color = "orange"; // Above optimal
+								color = "orange";
 							}
 						} else {
-							// Meta title logic
 							if (baseValue.length < 5) {
-								color = "red"; // Too short (excluding site name)
+								color = "red";
 							} else if (baseValue.length >= 5 && baseValue.length < 20) {
-								color = "orange"; // Below optimal (excluding site name)
+								color = "orange";
 							} else if (totalLength >= 45 && totalLength <= 60) {
-								color = "green"; // Optimal range (including site name)
+								color = "green";
 							} else if (totalLength > 60) {
-								color = "red"; // Too long (including site name)
+								color = "red";
 							}
 						}
 
 						counter.style.color = color;
-						counter.textContent = `${message} (Optimal: ${optimalMin}-${optimalMax} characters)`;
+						counter.textContent = `${totalLength} characters (Optimal: ${optimalMin}-${optimalMax})`;
 					}
 
-					// Function to dynamically update title counter
+					// Dynamic updates for title and description
 					function updateTitle() {
-						const baseValue = titleInput.value.trim();
-						updateCounter(baseValue, titleCounter, 45, 60, siteNameLength);
+						updateCounter(titleInput.value.trim(), titleCounter, 45, 60, siteNameLength);
 					}
 
-					// Function to dynamically update description counter
 					function updateDescription() {
-						const baseValue = descriptionInput.value.trim();
-						updateCounter(baseValue, descriptionCounter, 145, 160, 0, true);
+						updateCounter(descriptionInput.value.trim(), descriptionCounter, 145, 160, 0, true);
 					}
 
 					// Initial updates
