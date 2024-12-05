@@ -29,8 +29,8 @@ add_action( 'add_meta_boxes', function() {
 		'metadata-meta-box',
 		'Metadata',
 		function( $post ) {
-			$custom_title       = get_post_meta( $post->ID, '_metadata_custom_title', true );
-			$custom_description = get_post_meta( $post->ID, '_metadata_custom_description', true );
+			$custom_title       = get_post_meta( $post->ID, '_metadata_title', true );
+			$custom_description = get_post_meta( $post->ID, '_metadata_description', true );
 			$site_name          = get_bloginfo( 'name' );
 
 			wp_nonce_field( 'metadata_save_meta_box', 'metadata_nonce' );
@@ -136,41 +136,55 @@ add_action( 'save_post', function( $post_id ) {
 
 	if ( isset( $_POST['metadata_custom_title'] ) ) {
 		$custom_title = sanitize_text_field( $_POST['metadata_custom_title'] );
-		update_post_meta( $post_id, '_metadata_custom_title', $custom_title );
+		update_post_meta( $post_id, '_metadata_title', $custom_title );
 	}
 
 	if ( isset( $_POST['metadata_custom_description'] ) ) {
-		update_post_meta( $post_id, '_metadata_custom_description', sanitize_textarea_field( $_POST['metadata_custom_description'] ) );
+		update_post_meta( $post_id, '_metadata_description', sanitize_textarea_field( $_POST['metadata_custom_description'] ) );
 	}
 });
 
 // modify the title output and append the site name
 add_filter( 'pre_get_document_title', function( $title ) {
-	if ( is_singular() ) {
-		global $post;
-
-		$custom_title = get_post_meta( $post->ID, '_metadata_custom_title', true );
-		$site_name    = get_bloginfo( 'name' );
-
-		if ( $custom_title ) {
-			return $custom_title . ' - ' . $site_name;
-		}
+	if ( ! is_singular() ) {
+		return $title;
 	}
 
-	return $title . ' - ' . get_bloginfo( 'name' );
+	$post = get_queried_object();
+
+	// Ensure we are working with a valid post object
+	if ( ! ( $post instanceof WP_Post ) ) {
+		return $title;
+	}
+
+	$metadata_title = get_post_meta( $post->ID, '_metadata_title', true );
+	$site_name      = get_bloginfo( 'name' );
+
+	if ( $metadata_title ) {
+		return $metadata_title . ' - ' . $site_name;
+	} else {
+		return $title . ' - ' . $site_name;
+	}
 });
 
 // inject meta description directly after the title
 add_action( 'wp_head', function() {
-	if ( is_singular() ) {
-		global $post;
+	if ( ! is_singular() ) {
+		return;
+	}
 
-		$custom_description = get_post_meta( $post->ID, '_metadata_custom_description', true );
+	$post = get_queried_object();
 
-		// Output description directly after the <title> tag
-		if ( $custom_description ) {
-			echo '<meta name="description" content="' . esc_attr( $custom_description ) . '">' . "\n";
-		}
+	// Ensure we are working with a valid post object
+	if ( ! ( $post instanceof WP_Post ) ) {
+		return;
+	}
+
+	$metadata_description = get_post_meta( $post->ID, '_metadata_description', true );
+
+	// Output description directly after the <title> tag
+	if ( ! empty( $metadata_description ) ) {
+		echo '<meta name="description" content="' . esc_attr( $metadata_description ) . '">' . "\n";
 	}
 }, 1 ); // priority 1 ensures it's output right after the <title>
 
