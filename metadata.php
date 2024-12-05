@@ -29,26 +29,37 @@ add_action( 'add_meta_boxes', function() {
 		'metadata-meta-box',
 		'Metadata',
 		function( $post ) {
-			// Fetch existing meta values
-			$metadata_title       = get_post_meta( $post->ID, '_metadata_title', true );
-			$metadata_description = get_post_meta( $post->ID, '_metadata_description', true );
-			$site_name            = get_bloginfo( 'name' );
+			// fetch existing meta values
+            $metadata_title       = get_post_meta( $post->ID, '_metadata_title', true );
+            $metadata_description = get_post_meta( $post->ID, '_metadata_description', true );
+            $site_name            = get_bloginfo( 'name' );
 
-			// Nonce for security
-			wp_nonce_field( 'metadata_save_meta_box', 'metadata_nonce' );
+            // nonce for security
+            wp_nonce_field( 'metadata_save_meta_box', 'metadata_nonce' );
 
-			// Meta Title Field
-			echo '<label for="metadata_custom_title">Meta Title</label>';
-			echo '<div style="position: relative; display: flex; align-items: center; max-width: 100%;">';
-			echo '<input type="text" id="metadata_custom_title" name="metadata_custom_title" value="' . esc_attr( $metadata_title ) . '" class="widefat" style="padding-right: 180px;" />';
-			echo '<span id="site_name_overlay" style="position: absolute; right: 10px; color: #999; pointer-events: none; user-select: none;"> - ' . esc_html( $site_name ) . '</span>';
-			echo '</div>';
-			echo '<p id="metadata_title_counter" class="description">Optimal range: 45-60 characters (including " - ' . esc_html( $site_name ) . '").</p>';
+            // wrapper for metadata fields
+            echo '<div class="metadata-box">';
 
-			// Meta Description Field
-			echo '<label for="metadata_custom_description">Meta Description</label>';
-			echo '<textarea id="metadata_custom_description" name="metadata_custom_description" class="widefat" rows="4">' . esc_textarea( $metadata_description ) . '</textarea>';
-			echo '<p id="metadata_description_counter" class="description">Optimal range: 145-160 characters.</p>';
+            // meta title field
+            echo '<div class="metadata-title-field" style="margin-bottom: 12px;">';
+            echo '<label for="metadata_custom_title">' . esc_html__( 'Meta Title', 'metadata' ) . '</label>';
+            echo '<div style="position: relative; max-width: 100%; margin-bottom: 4px;">'; // ensure vertical stacking
+            echo '<input type="text" id="metadata_custom_title" name="metadata_custom_title" value="' . esc_attr( $metadata_title ) . '" class="widefat" style="padding-right: 180px;" />';
+            echo '<span id="site_name_overlay" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #999; pointer-events: none; user-select: none;"> - ' . esc_html( $site_name ) . '</span>';
+            echo '</div>';
+            echo '<p id="metadata_title_counter" class="description" style="margin-top: 0;">' . esc_html__( 'Optimal range: 45-60 characters (including " - ', 'metadata' ) . esc_html( $site_name ) . '").</p>';
+            echo '</div>';
+
+            // meta description field
+            echo '<div class="metadata-description-field" style="margin-bottom: 0px;">';
+            echo '<label for="metadata_custom_description">' . esc_html__( 'Meta Description', 'metadata' ) . '</label>';
+            echo '<div style="position: relative; max-width: 100%; margin-bottom: 4px;">'; // align with title field structure
+            echo '<textarea id="metadata_custom_description" name="metadata_custom_description" class="widefat" rows="4" style="resize: vertical; padding-right: 0;">' . esc_textarea( $metadata_description ) . '</textarea>';
+            echo '</div>';
+            echo '<p id="metadata_description_counter" class="description" style="margin-top: 0;">' . esc_html__( 'Optimal range: 145-160 characters.', 'metadata' ) . '</p>';
+            echo '</div>';
+
+            echo '</div>'; // end wrapper
 
 			// Inline JavaScript for counter updates
 			echo '<script>
