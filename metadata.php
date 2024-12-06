@@ -77,53 +77,46 @@ add_action( 'add_meta_boxes', function() {
                     const siteName = " - ' . esc_js( $metadata_site_name ) . '";
                     const siteNameLength = siteName.length;
 
-                    function updateCounter(baseValue, counter, optimalMin, optimalMax, appendLength = 0, isDescription = false) {
-                        const totalLength = baseValue.length + appendLength;
-                        let color = "";
-
-                        if (isDescription) {
-                            if (totalLength < 80) {
-                                color = "red";
-                            } else if (totalLength >= 80 && totalLength < 145) {
-                                color = "orange";
-                            } else if (totalLength >= 145 && totalLength <= 160) {
-                                color = "green";
-                            } else if (totalLength > 160) {
-                                color = "orange";
-                            }
-                        } else {
-                            if (baseValue.length < 5) {
-                                color = "red";
-                            } else if (baseValue.length >= 5 && baseValue.length < 20) {
-                                color = "orange";
-                            } else if (totalLength >= 45 && totalLength <= 60) {
-                                color = "green";
-                            } else if (totalLength > 60) {
-                                color = "red";
-                            }
-                        }
-
-                        counter.style.color = color;
-                        counter.textContent = `${totalLength} characters (Optimal: ${optimalMin}-${optimalMax})`;
+                    function getColorBasedOnLength(length, thresholds) {
+                        if (length < thresholds.min) return "red";
+                        if (length >= thresholds.warning && length < thresholds.optimal.min) return "orange";
+                        if (length >= thresholds.optimal.min && length <= thresholds.optimal.max) return "green";
+                        return "red";
                     }
 
-                    function updateTitle() {
-                        updateCounter(titleInput.value.trim(), titleCounter, 45, 60, siteNameLength);
+                    function updateCounter(inputValue, counterElement, thresholds, appendLength = 0) {
+                        const totalLength = inputValue.length + appendLength;
+                        const color = getColorBasedOnLength(totalLength, thresholds);
+                        counterElement.style.color = color;
+                        counterElement.textContent = `${totalLength} characters (Optimal: ${thresholds.optimal.min}-${thresholds.optimal.max})`;
                     }
 
-                    function updateDescription() {
-                        updateCounter(descriptionInput.value.trim(), descriptionCounter, 145, 160, 0, true);
+                    function updateTitleCounter() {
+                        if (!titleInput || !titleCounter) return;
+                        const thresholds = { min: 5, warning: 20, optimal: { min: 45, max: 60 } };
+                        updateCounter(titleInput.value.trim(), titleCounter, thresholds, siteNameLength);
                     }
 
-                    updateTitle();
-                    updateDescription();
+                    function updateDescriptionCounter() {
+                        if (!descriptionInput || !descriptionCounter) return;
+                        const thresholds = { min: 80, warning: 145, optimal: { min: 145, max: 160 } };
+                        updateCounter(descriptionInput.value.trim(), descriptionCounter, thresholds);
+                    }
 
-                    titleInput.addEventListener("input", updateTitle);
-                    descriptionInput.addEventListener("input", updateDescription);
+                    updateTitleCounter();
+                    updateDescriptionCounter();
+
+                    if (titleInput) {
+                        titleInput.addEventListener("input", updateTitleCounter);
+                    }
+
+                    if (descriptionInput) {
+                        descriptionInput.addEventListener("input", updateDescriptionCounter);
+                    }
                 });
             </script>';
         },
-        [ 'post', 'page' ],
+        get_post_types( [ 'public' => true ] ), // dynamically include all public post types
         'normal',
         'high'
     );
@@ -131,28 +124,23 @@ add_action( 'add_meta_boxes', function() {
 
 // save the metadata fields
 add_action( 'save_post', function( $post_id ) {
-    // verify nonce
     if ( ! isset( $_POST['metadata_nonce'] ) || ! wp_verify_nonce( $_POST['metadata_nonce'], 'metadata_save_meta_box' ) ) {
         return;
     }
 
-    // skip autosaves
     if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
         return;
     }
 
-    // check user permissions
     if ( ! current_user_can( 'edit_post', $post_id ) ) {
         return;
     }
 
-    // save meta title
     if ( isset( $_POST['metadata_custom_title'] ) ) {
         $metadata_title = sanitize_text_field( $_POST['metadata_custom_title'] );
         update_post_meta( $post_id, '_metadata_title', $metadata_title );
     }
 
-    // save meta description
     if ( isset( $_POST['metadata_custom_description'] ) ) {
         $metadata_description = sanitize_textarea_field( $_POST['metadata_custom_description'] );
         update_post_meta( $post_id, '_metadata_description', $metadata_description );
